@@ -16,12 +16,13 @@ authors = [
 ]
 
 dependencies = [
-    # ... put stuff here ...
+    "argcomplete",
+    "construct==2.10.70",
 ]
 
 [project.scripts]
 # Command line interface entrypoint scripts
-psas-psarc = "psas_psarc.__init__:main"
+psas-psarc = "psas_psarc.__main__:main"
 
 [project.urls]
 "Homepage" = "<url>"
@@ -140,6 +141,9 @@ ignore = [
     "PGH003",  # Use specific rule codes when ignoring type issues
     "PLC1901", # compare-to-empty-string
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"src/psas_psarc/__main__.py" = ["T20"]
 
 # Configuration for vulture
 [tool.vulture]

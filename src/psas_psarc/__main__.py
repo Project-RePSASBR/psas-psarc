@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import argparse
 import logging
 import sys
@@ -6,6 +8,7 @@ from pathlib import Path
 import argcomplete
 
 from psas_psarc._logging_classes import BColors, setup_loggers
+from psas_psarc.psarc_extractor import extract_psas_psarc
 
 
 def _add_generic_arguments(parser: argparse.ArgumentParser) -> None:
@@ -66,26 +69,6 @@ def _add_repack_arguments(parser: argparse.ArgumentParser) -> None:
     )
 
 
-def _validate_arguments(args: argparse.Namespace) -> None:
-    """
-    Validate the parsed command-line arguments bundle.
-
-    :param args: parsed command-line arguments bundle
-    :type args: argparse.Namespace
-
-    :raises ValueError: if any of the parsed arguments are invalid
-    """
-
-    if args.command == "extract":
-        if not args.psarc.is_file() or args.psarc.suffix != ".psarc":
-            raise ValueError(f"Provided path to PSARC archive '{args.psarc}' is invalid.")
-        if not args.output.is_dir():
-            raise ValueError(f"Provided output directory '{args.output}' does not exist.")
-    elif args.command == "repack":
-        if not args.input.is_dir():
-            raise ValueError(f"Provided directory to extract PSARC archive contents '{args.input}' does not exist.")
-
-
 def get_parser() -> argparse.ArgumentParser:
     """
     Construct parser for parsing command-line arguments.
@@ -124,9 +107,8 @@ def main() -> int:
     setup_loggers(__package__, level=logging.INFO if not args.verbose else logging.DEBUG)
 
     try:
-        _validate_arguments(args)
         if args.command == "extract":
-            pass
+            extract_psas_psarc(args.psarc.resolve(), args.output.resolve())
         elif args.command == "repack":
             pass
     except Exception as e:

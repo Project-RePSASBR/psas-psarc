@@ -18,6 +18,7 @@ authors = [
 dependencies = [
     "argcomplete",
     "construct==2.10.70",
+    "pycryptodome==3.23.0",
 ]
 
 [project.scripts]

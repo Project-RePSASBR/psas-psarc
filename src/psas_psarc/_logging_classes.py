@@ -31,7 +31,7 @@ class ColoredFormatter(logging.Formatter):
 
         :param record: Log record to format
         :type record: logging.LogRecord
-        :returns: Formatted log message with color
+        :return: Formatted log message with color
         :rtype: str
         """
         log_message = super().format(record)

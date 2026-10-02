@@ -161,6 +161,18 @@ class _PsarcExtractor:
         :rtype: bytes
         """
 
+        # AES-256-CTR( body )  then  raw DEFLATE  (no zlib wrapper)
+
+        # * key (32 bytes, found inside retail psarc-inflate SPU task):
+        #         7a7fce1f 558e39a1 19412637 923de935
+        #         da7a4d41 b7cc3528 6f56f87c e9dbc392
+        # * each block begins with a 2-byte big-endian header (nonce id); the
+        #     encrypted body is block[2:].
+        # * AES-CTR counter block (big-endian) for the i-th 16 bytes of a block:
+        #         "deadbeef" | u32(len(block)) | u32(block[:2]) | u32(i)   (i from 0)
+        # * the decrypted body is a RAW deflate stream (zlib wbits = -15).
+        # * stored (uncompressed) blocks are NOT encrypted -- copied verbatim.
+
         hdr = (block[0] << 8) | block[1]
         prefix = b"\xde\xad\xbe\xef" + struct.pack(">I", len(block)) + struct.pack(">I", hdr)
         ctr = Counter.new(32, prefix=prefix, initial_value=0)
@@ -210,9 +222,7 @@ class _PsarcExtractor:
         return inflated
 
     def _read_psarc_manifest(self) -> None:
-        """
-        Read the PSARC archive manifest entry.
-        """
+        """Read the PSARC archive manifest entry."""
 
         # The manifest should always correspond to the first ToC entry
         raw_manifest = self._inflate_entry(0)
@@ -291,12 +301,53 @@ def extract_psas_psarc(psarc_path: Path, output_dir: Path) -> None:
     :type psarc_path: Path
     :param output_dir: path to write the extracted contents of the PSARC archive to
     :type output_dir: Path
+    :raises ValueError: if provided path to PSARC archive is invalid or output directory does not exist
     """
 
-    if not output_dir.is_dir():
-        raise ValueError(f"Provided output directory '{output_dir}' does not exist.")
+    psarc_path = Path(psarc_path) if isinstance(psarc_path, str) else psarc_path
+    output_dir = Path(output_dir) if isinstance(output_dir, str) else output_dir
 
-    _logger.info("Extracting PSARC archive: %s to output directory: %s", psarc_path, output_dir)
+    _logger.info("Extracting PSARC archive '%s' to output directory '%s'...", psarc_path, output_dir)
 
     extractor = _PsarcExtractor(psarc_path)
     extractor.extract_all(output_dir)
+
+
+def extract_file_from_psas_psarc(psarc_path: Path, filename: str) -> bytes:
+    """
+    Extract a given file from a PSARC archive.
+
+    :param psarc_path: path to PSARC archive to attempt to extract file from
+    :type psarc_path: pathlib.Path
+    :param filename: name of file to extract from PSARC archive
+    :type filename: str
+    :returns: raw extracted file bytes from PSARC archive
+    :rtype: bytes
+    :raises ValueError: if provided path to PSARC archive is invalid or provided filename is not in archive
+    """
+
+    psarc_path = Path(psarc_path) if isinstance(psarc_path, str) else psarc_path
+
+    _logger.info("Extracting file '%s' from PSARC archive '%s'...", filename, psarc_path)
+
+    extractor = _PsarcExtractor(psarc_path)
+    return extractor.extract_single_file(filename)
+
+
+def get_psas_psarc_manifest(psarc_path: Path) -> list[str]:
+    """
+    Extract the manifest from the provided PSARC archive.
+
+    :param psarc_path: path to the PSARC archive to extract manifest from
+    :type psarc_path: Path
+    :returns: list of filenames in PSARC archive
+    :rtype: list[str]
+    :raises ValueError: if provided path to PSARC archive is invalid
+    """
+
+    psarc_path = Path(psarc_path) if isinstance(psarc_path, str) else psarc_path
+
+    _logger.info("Extracting manifest from PSARC archive '%s'...", psarc_path)
+
+    extractor = _PsarcExtractor(psarc_path)
+    return extractor.get_manifest()

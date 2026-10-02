@@ -9,6 +9,7 @@ import argcomplete
 
 from psas_psarc._logging_classes import BColors, setup_loggers
 from psas_psarc.psarc_extractor import extract_psas_psarc
+from psas_psarc.psarc_repacker import repack_psas_psarc
 
 
 def _add_generic_arguments(parser: argparse.ArgumentParser) -> None:
@@ -62,6 +63,13 @@ def _add_repack_arguments(parser: argparse.ArgumentParser) -> None:
         help="Path to directory containing files to repack into PSARC archive",
     )
     repack_args.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        required=True,
+        help="Output file to write repacked PSARC archive to",
+    )
+    repack_args.add_argument(
         "-e",
         "--encrypt",
         action=argparse.BooleanOptionalAction,
@@ -110,7 +118,7 @@ def main() -> int:
         if args.command == "extract":
             extract_psas_psarc(args.psarc.resolve(), args.output.resolve())
         elif args.command == "repack":
-            pass
+            repack_psas_psarc(args.input.resolve(), args.output.resolve(), encrypt=args.encrypt)
     except Exception as e:
         print(f"{BColors.FAIL}Error: {e}{BColors.ENDC}", file=sys.stderr)
         return 1

@@ -3,7 +3,7 @@
 PSAS PSARC is a light-weight Python package for managing PSARC archives for PlayStation All-Stars Battle Royale (PSAS). This package has support for both extracting and repacking PSARC archives for both the retail PS3 and Vita versions of the game. PSARC archives for the retail PS3 version are encrypted and this package contains special logic for decrypting retail PSARC archives and then repacking them into their original encrypted format.
 
 ## Installation
-Install PSAS PSARC via `pip` from [PyPI](https://pypi.org):
+Install PSAS PSARC via `pip` from [PyPI](https://pypi.org/project/psas-psarc/):
 
 ```bash
 pip install psas-psarc

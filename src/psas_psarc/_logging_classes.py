@@ -62,6 +62,11 @@ def setup_loggers(name: str, level: int = logging.INFO):
     logger = logging.getLogger(name)
     logger.setLevel(level)
 
+    # Avoid duplicate console handlers when the CLI is invoked more than once in the same process.
+    for existing_handler in list(logger.handlers):
+        logger.removeHandler(existing_handler)
+        existing_handler.close()
+
     # Create console handler with colored formatter
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(level)

@@ -4,9 +4,11 @@ import struct
 import zlib
 from pathlib import Path
 
-from construct import Array, Byte, Const, Container, Int16ub, Int32ub, Struct
+from construct import Container
 from Crypto.Cipher import AES
 from Crypto.Util import Counter
+
+from psas_psarc._common import ps3_retail_key, psarc_archive_header, psarc_toc_entry
 
 _logger = logging.getLogger(__package__)
 
@@ -48,36 +50,6 @@ class _PsarcExtractor:
     for PlayStation All-Stars Battle Royale for the PlayStation Vita and PlayStation 3.
     """
 
-    # PSARC archive header magic bytes
-    psarc_header_magic = b"PSAR"
-
-    # PSARC archive compression type magic bytes
-    psarc_compression_magic = b"zlib"
-
-    # PSARC archive header struct definition
-    psarc_archive_header = Struct(
-        "magic" / Const(psarc_header_magic),
-        "major_version" / Int16ub,
-        "minor_version" / Int16ub,
-        "compression_type" / Const(psarc_compression_magic),
-        "toc_length" / Int32ub,
-        "toc_entry_size" / Int32ub,
-        "toc_entries" / Int32ub,
-        "max_block_size" / Int32ub,
-        "archive_flags" / Int32ub,
-    )
-
-    # PSARC archive TOC entry struct definition
-    psarc_toc_entry = Struct(
-        "name_digest" / Array(16, Byte),
-        "block_index" / Int32ub,
-        "uncompressed_size" / Array(5, Byte),
-        "file_offset" / Array(5, Byte),
-    )
-
-    # Decryption key for retail PS3 archives
-    ps3_retail_key = bytes.fromhex("7a7fce1f558e39a119412637923de935da7a4d41b7cc35286f56f87ce9dbc392")
-
     def __init__(self, psarc_path: Path) -> None:
         """
         _PsarcExtractor constructor.
@@ -104,7 +76,7 @@ class _PsarcExtractor:
         """
 
         # Read the PSARC archive header
-        header = self.psarc_archive_header.parse(self.raw_psarc[0 : self.psarc_archive_header.sizeof()])
+        header = psarc_archive_header.parse(self.raw_psarc[0 : psarc_archive_header.sizeof()])
         _logger.debug("Reading PSARC archive header for '%s':", self.psarc)
         for key, value in header.items():
             if key == "_io":
@@ -120,10 +92,10 @@ class _PsarcExtractor:
 
         # Read in the archive Table of Contents (TOC) entries
         toc_entries = []
-        toc_offset = self.psarc_archive_header.sizeof()
+        toc_offset = psarc_archive_header.sizeof()
         for i in range(header.toc_entries):
             toc_entry_offset = toc_offset + (i * header.toc_entry_size)
-            toc_entry = self.psarc_toc_entry.parse(
+            toc_entry = psarc_toc_entry.parse(
                 self.raw_psarc[toc_entry_offset : toc_entry_offset + header.toc_entry_size]
             )
 
@@ -176,7 +148,7 @@ class _PsarcExtractor:
         hdr = (block[0] << 8) | block[1]
         prefix = b"\xde\xad\xbe\xef" + struct.pack(">I", len(block)) + struct.pack(">I", hdr)
         ctr = Counter.new(32, prefix=prefix, initial_value=0)
-        aes_ctx = AES.new(self.ps3_retail_key, AES.MODE_CTR, counter=ctr)
+        aes_ctx = AES.new(ps3_retail_key, AES.MODE_CTR, counter=ctr)
 
         return aes_ctx.decrypt(block[2:])
 
